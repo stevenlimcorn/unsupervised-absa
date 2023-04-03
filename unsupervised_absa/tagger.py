@@ -46,10 +46,10 @@ class Tagger:
                 if filter_tags == None or label.value in filter_tags:
                     pos_dict.append(
                         {
-                            (
-                                label.data_point.start_position,
-                                label.data_point.end_position,
-                            ): label.value
+                            "start": label.data_point.start_position,
+                            "end": label.data_point.end_position,
+                            "tag": label.value,
+                            "word": label.data_point.text,
                         }
                     )
             tags.append(pos_dict)

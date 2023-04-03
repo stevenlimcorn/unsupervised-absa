@@ -66,7 +66,7 @@ class ExtractEmbedding:
             flair.device = torch.device("cuda")
 
     def extract(self, texts: list):
-        embeddings = list()
+        embeddings = {}
         for text in tqdm(texts):
             sentence = Sentence(text)
             self.model.embed(sentence)
@@ -84,8 +84,8 @@ class ExtractEmbedding:
                 embedding = torch.mean(
                     torch.stack([word.embedding for word in sentence]), axis=0
                 )
-            embeddings.append(embedding)
-        return torch.stack(embeddings)
+            embeddings[text] = embedding.detach().cpu().numpy()
+        return embeddings
 
     def _init_model(
         self, model_type: ModelType, model_name: str, pooling_method: str
