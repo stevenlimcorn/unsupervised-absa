@@ -1,0 +1,6 @@
+Metadata-Version: 2.1
+Name: unsupervised-absa
+Version: 0.1.0
+Summary: A natural language processing toolkit for extracting aspect based sentiment analysis dataset.
+Author: Steven Limcorn
+License: MIT
