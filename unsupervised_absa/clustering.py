@@ -6,11 +6,13 @@ from typing import Union
 
 import joblib
 from sklearn.base import BaseEstimator, ClusterMixin
-from sklearn.metrics import normalized_mutual_info_score
-from tqdm import tqdm
+from sklearn.metrics import (
+    normalized_mutual_info_score,
+    silhouette_score,
+    calinski_harabasz_score,
+    davies_bouldin_score,
+)
 
-from flair.datasets import DataLoader
-from flair.embeddings import DocumentEmbeddings
 import numpy as np
 import torch
 
@@ -30,11 +32,12 @@ class ClusteringModel:
         """
         self.model = model
 
-    def fit(self, embeddings: Union[torch.tensor, np.array, list], **kwargs):
-        """
-        Trains the model.
-        :param corpus: the flair corpus this wrapper will use for fitting the model.
-        """
+    def fit(
+        self,
+        embeddings: Union[torch.tensor, np.array, list],
+        cosine_distance: bool = True,
+        **kwargs
+    ) -> dict:
         if torch.is_tensor(embeddings):
             embeddings = embeddings.detach().numpy()
         elif isinstance(embeddings, np.ndarray):
@@ -43,6 +46,10 @@ class ClusteringModel:
             embeddings = np.array(embeddings)
         else:
             logger.error("Make sure to input only type numpy, tensor or list")
+        if cosine_distance:
+            length = np.sqrt((embeddings**2).sum(axis=1))[:, None]
+            embeddings = embeddings / length
+
         logger.info(
             "Start clustering "
             + str(self.model)
@@ -50,15 +57,20 @@ class ClusteringModel:
             + str(len(embeddings))
             + " Datapoints."
         )
-        logger.info(embeddings.shape)
         self.model.fit(embeddings, **kwargs)
+        result = {
+            "Silhoutte Score": silhouette_score(embeddings, self.model.labels_),
+            "Calinski-Harabasz Index": calinski_harabasz_score(
+                embeddings, self.model.labels_
+            ),
+            "Davies-Bouldin Index": davies_bouldin_score(
+                embeddings, self.model.labels_
+            ),
+        }
         logger.info("Finished clustering.")
+        return result
 
     def predict(self, embeddings: Union[torch.tensor, np.array, list]):
-        """
-        Predict labels given a list of sentences and returns the respective class indices.
-        :param corpus: the flair corpus this wrapper will use for predicting the labels.
-        """
         if torch.is_tensor(embeddings):
             embeddings = embeddings.detach().numpy()
         elif isinstance(embeddings, np.ndarray):

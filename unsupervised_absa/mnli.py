@@ -1,5 +1,5 @@
 from transformers import pipeline
-from typing import Union
+from typing import Union, Optional
 import datasets
 from datasets import dataset_dict, Dataset
 import pandas as pd
@@ -114,7 +114,7 @@ class MnliPipeline:
         dataset: Union[datasets.arrow_dataset.Dataset, pd.DataFrame],
         text_variable_name: str,
         label_variable_name: str,
-        device: Union[int, str, torch.device] = torch.device(
+        device: Optional[Union[int, str, torch.device]] = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         ),
         batch_size: str = 16,

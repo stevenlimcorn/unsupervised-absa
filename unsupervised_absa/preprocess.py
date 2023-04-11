@@ -44,9 +44,10 @@ def simple_preprocessing(
             pbar.set_description(f"Processing {fn.__name__}")
             output = np.vectorize(fn)(output)
     elif isinstance(data, list):
+        output = data.copy()
         for fn in (pbar := tqdm(functions)):
             pbar.set_description(f"Processing {fn.__name__}")
-            output = list(map(fn, data))
+            output = list(map(fn, output))
     elif isinstance(data, pd.Series):
         tqdm.pandas()
         output = data.astype(str)
@@ -213,7 +214,7 @@ def remove_punctuation(text: str) -> str:
         str: text with punctuations removed
     """
     PUNCTUATION = string.punctuation
-    return text.translate(str.maketrans("", "", PUNCTUATION))
+    return text.translate(str.maketrans(PUNCTUATION, " " * len(PUNCTUATION)))
 
 
 def strip_spaces(text: str) -> str:

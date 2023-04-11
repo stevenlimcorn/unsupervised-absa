@@ -9,7 +9,7 @@ from flair.data import Sentence
 from enum import Enum
 import torch
 import flair
-from typing import List, Union
+from typing import List, Union, Optional
 from tqdm import tqdm
 from loguru import logger
 
@@ -28,7 +28,7 @@ class ExtractEmbedding:
         self,
         model_types: Union[List[ModelType], ModelType],
         model_names: Union[List[str], str],
-        pooling_method: str = "mean",
+        pooling_method: Optional[str] = "mean",
     ) -> None:
         """
 

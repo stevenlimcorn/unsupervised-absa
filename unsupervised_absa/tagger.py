@@ -42,8 +42,10 @@ class Tagger:
             text.to(device=flair.device)
             self.tagger.predict(text)
             pos_dict = []
+            word = []
+            start, end, tag = None, None, None
             for label in text.get_labels():
-                if filter_tags == None or label.value in filter_tags:
+                if filter_tags == None:
                     pos_dict.append(
                         {
                             "start": label.data_point.start_position,
@@ -52,6 +54,33 @@ class Tagger:
                             "word": label.data_point.text,
                         }
                     )
+                elif label.value in filter_tags:
+                    if start == None:
+                        start = label.data_point.start_position
+                    end = label.data_point.end_position
+                    tag = label.value
+                    word.append(label.data_point.text)
+                elif len(word) != 0:
+                    pos_dict.append(
+                        {
+                            "start": start,
+                            "end": end,
+                            "tag": tag,
+                            "word": " ".join(word),
+                        }
+                    )
+                    start, end, tag = None, None, None
+                    word = []
+            if len(word) != 0:
+                pos_dict.append(
+                    {
+                        "start": start,
+                        "end": end,
+                        "tag": tag,
+                        "word": " ".join(word),
+                    }
+                )
+                start, end, tag = None, None, None
             tags.append(pos_dict)
         return tags
 
