@@ -116,7 +116,7 @@ class MnliPipeline:
         device: Optional[Union[int, str, torch.device]] = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
         ),
-        batch_size: str = 16,
+        batch_size: int = 16,
     ) -> datasets.arrow_dataset.Dataset:
         """
         Extract polarity of each text and aspect term or category in each sentence.
@@ -163,6 +163,9 @@ class MnliPipeline:
         except Exception as e:
             self.pipe.reset_count()
             raise e
+        except KeyboardInterrupt:
+            self.pipe.reset_count()
+            raise KeyboardInterrupt
 
         # postprocessing outputs
         logger.info("Postprocessing outputs")

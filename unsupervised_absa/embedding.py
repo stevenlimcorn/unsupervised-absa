@@ -29,6 +29,9 @@ class ExtractEmbedding:
         model_types: Union[List[ModelType], ModelType],
         model_names: Union[List[str], str],
         pooling_method: Optional[str] = "mean",
+        device: Union[str, torch.device] = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        ),
     ) -> None:
         """
 
@@ -62,8 +65,19 @@ class ExtractEmbedding:
                 f"Incompatible types given. Got `model_types` of type {type(model_types)} and `model_names` of type {type(model_names)}"
             )
 
-        if torch.cuda.is_available():
-            flair.device = torch.device("cuda")
+        if isinstance(device, torch.device):
+            flair.device = device
+        elif isinstance(device, str):
+            # check what device
+            if device == "cuda" and torch.cuda.is_available():
+                flair.device = torch.device(device)
+            elif device == "mps" and torch.backends.mps.is_available():
+                flair.device = torch.device(device)
+            else:
+                flair.device = torch.device("cpu")
+        else:
+            flair.device = torch.device("cpu")
+        logger.info(f"Tagger model instantiated with device: {flair.device}")
 
     def extract(self, texts: list):
         embeddings = {}

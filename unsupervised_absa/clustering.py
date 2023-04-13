@@ -66,8 +66,8 @@ class ClusteringModel:
             "Davies-Bouldin Index": davies_bouldin_score(
                 embeddings, self.model.labels_
             ),
+            "inertia": self.model.inertia_,
         }
-        logger.info("Finished clustering.")
         return result
 
     def predict(self, embeddings: Union[torch.tensor, np.array, list]):
