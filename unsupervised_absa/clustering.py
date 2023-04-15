@@ -9,8 +9,7 @@ from sklearn.base import BaseEstimator, ClusterMixin
 from sklearn.metrics import (
     normalized_mutual_info_score,
     silhouette_score,
-    calinski_harabasz_score,
-    davies_bouldin_score,
+    silhouette_samples
 )
 
 import numpy as np
@@ -57,18 +56,14 @@ class ClusteringModel:
             + str(len(embeddings))
             + " Datapoints."
         )
-        self.model.fit(embeddings, **kwargs)
+        class_labels = self.model.fit_predict(embeddings, **kwargs)
+        sample_silhouette_values = silhouette_samples(embeddings, class_labels)
         result = {
-            "Silhoutte Score": silhouette_score(embeddings, self.model.labels_),
-            "Calinski-Harabasz Index": calinski_harabasz_score(
-                embeddings, self.model.labels_
-            ),
-            "Davies-Bouldin Index": davies_bouldin_score(
-                embeddings, self.model.labels_
-            ),
-            "inertia": self.model.inertia_,
+            "Silhoutte Score": silhouette_score(embeddings, class_labels),
+            "Sample Silhoutte": sample_silhouette_values,
+            "Labels": class_labels 
         }
-        return result
+        return (result, embeddings)
 
     def predict(self, embeddings: Union[torch.tensor, np.array, list]):
         if torch.is_tensor(embeddings):
