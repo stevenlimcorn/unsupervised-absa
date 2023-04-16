@@ -4,3 +4,4 @@
 /models/*
 /checkpoints/*
 /facebook-dataset/*
+/sem_eval_clustering/*
