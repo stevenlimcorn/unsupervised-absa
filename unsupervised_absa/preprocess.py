@@ -11,6 +11,7 @@ import unicodedata
 import string
 import matplotlib.pyplot as plt
 from collections import Counter
+from wordsegment import load, segment
 
 
 # Main Methods
@@ -38,6 +39,7 @@ def simple_preprocessing(
         remove_multiple_spaces,
         strip_spaces,
     ]
+    load()
     if isinstance(data, np.ndarray):
         output = data.astype(str)
         for fn in (pbar := tqdm(functions)):
@@ -109,8 +111,12 @@ def remove_tags(text: str) -> str:
     Returns:
         str: text with hashtags and @ tags removed
     """
-    hashtags = re.sub("#[A-Za-z0-9_]+", "", text)
-    removed_tags = re.sub("@[A-Za-z0-9_]+", "", hashtags)
+    hashtags = re.findall("#[A-Za-z0-9_]+", text)
+    hash_words = [" ".join(segment(word.replace("#", ""))) for word in hashtags]
+    new_text = text
+    for old_word, new_word in zip(hashtags, hash_words):
+        new_text = new_text.replace(old_word, new_word)
+    removed_tags = re.sub("@[A-Za-z0-9_]+", "", new_text)
     return removed_tags
 
 
