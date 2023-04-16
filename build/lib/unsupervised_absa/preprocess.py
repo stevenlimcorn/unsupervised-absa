@@ -5,15 +5,18 @@ from loguru import logger
 import contractions
 import re
 from typing import Union
-from tqdm.auto import tqdm
+from tqdm import tqdm
 from unidecode import unidecode
 import unicodedata
+import string
+import matplotlib.pyplot as plt
+from collections import Counter
 
 
 # Main Methods
 def simple_preprocessing(
-    data: Union[np.array, pd.Series]
-) -> Union[np.array, pd.Series]:
+    data: Union[np.array, pd.Series, list]
+) -> Union[np.array, pd.Series, list]:
     """Preprocess text dataset, getting np.array or pd.Series data type
 
     Args:
@@ -22,18 +25,68 @@ def simple_preprocessing(
     Returns:
         (Union[np.array, pd.Series]): preprocessed text data
     """
+    functions = [
+        encode_decode,
+        convert_unicode,
+        remove_url,
+        remove_control_characters,
+        remove_tags,
+        remove_emoji,
+        convert_contractions,
+        remove_numbers,
+        remove_punctuation,
+        remove_multiple_spaces,
+        strip_spaces,
+    ]
     if isinstance(data, np.ndarray):
         output = data.astype(str)
-        output = np.vectorize(convert_unicode)(data)
+        for fn in (pbar := tqdm(functions)):
+            pbar.set_description(f"Processing {fn.__name__}")
+            output = np.vectorize(fn)(output)
+    elif isinstance(data, list):
+        output = data.copy()
+        for fn in (pbar := tqdm(functions)):
+            pbar.set_description(f"Processing {fn.__name__}")
+            output = list(map(fn, output))
     elif isinstance(data, pd.Series):
-        pass
+        tqdm.pandas()
+        output = data.astype(str)
+        for fn in (pbar := tqdm(functions)):
+            pbar.set_description(f"Processing {fn.__name__}")
+            output = output.apply(fn)
     else:
         logger.error("Current data types supported only series and numpy array")
-        return
-    return "hallo"
+        raise AssertionError()
+    return output
+
+
+def plot_top_k_words(text: Union[np.array, pd.Series, list], k: int):
+    split_text = " ".join(text).lower().split()
+    counter = Counter(split_text)
+    y = [value for _, value in counter.most_common(k)]
+    x = [key for key, _ in counter.most_common(k)]
+
+    f, ax = plt.subplots(1, 1, figsize=(12, 5))
+    ax.bar(x, y, width=0.8, align="center")
+    ax.set_title("Top k Most Frequent Words")
+    ax.ylabel = "Frequency"
+    ax.tick_params(axis="x", labelrotation=90)
+    for i, (key, value) in enumerate(zip(x, y)):
+        ax.text(
+            i, value, f" {value} ", rotation=90, ha="center", va="top", color="white"
+        )
+    ax.xlabel = "Words"
+    f.tight_layout()
+    return ax
 
 
 # Helper Methods
+def encode_decode(text: str) -> str:
+    bytes_encoded = text.encode(encoding="utf-8")
+    str_decoded = bytes_encoded.decode()
+    return str_decoded
+
+
 def remove_url(text: str) -> str:
     """Remove url from string
 
@@ -44,21 +97,33 @@ def remove_url(text: str) -> str:
         str: text with url removed
     """
     text = re.sub(r"http\S+", "", text, flags=re.MULTILINE)
-    text = re.sub(r"[^\s\d]+\.[^\s\d]+", "", text, flags=re.MULTILINE)
     return re.sub(r"www\S+", "", text, flags=re.MULTILINE)
 
 
-def remove_hashtags(text: str) -> str:
-    """Remove hashtags from string
+def remove_tags(text: str) -> str:
+    """Remove hashtags and @ tags from string
 
     Args:
-        text (str): text to remove hashtags
+        text (str): text to remove hashtags and @ tags
 
     Returns:
-        str: text with hashtags removed
+        str: text with hashtags and @ tags removed
     """
     hashtags = re.sub("#[A-Za-z0-9_]+", "", text)
-    return hashtags
+    removed_tags = re.sub("@[A-Za-z0-9_]+", "", hashtags)
+    return removed_tags
+
+
+def remove_control_characters(text: str) -> str:
+    """Remove control characters from string
+
+    Args:
+        text (str): text to remove control characters
+
+    Returns:
+        str: text with control characters removed
+    """
+    return re.sub(r"[\n\r\t]", " ", text)
 
 
 # Reference https://gist.github.com/slowkow/7a7f61f495e3dbb7e3d767f97bd7304b
@@ -137,6 +202,27 @@ def convert_unicode(text: str) -> str:
     """
     output = unicodedata.normalize("NFKD", text)
     return unidecode(output)
+
+
+def remove_punctuation(text: str) -> str:
+    """remove punctuations
+
+    Args:
+        text (str): remove punctuations from text
+
+    Returns:
+        str: text with punctuations removed
+    """
+    PUNCTUATION = string.punctuation
+    return text.translate(str.maketrans(PUNCTUATION, " " * len(PUNCTUATION)))
+
+
+def strip_spaces(text: str) -> str:
+    return text.strip()
+
+
+def remove_multiple_spaces(text: str) -> str:
+    return re.sub(" +", " ", text)
 
 
 # lemmatization
