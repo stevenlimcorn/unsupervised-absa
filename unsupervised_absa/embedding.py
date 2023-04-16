@@ -4,6 +4,7 @@ from flair.embeddings import (
     FlairEmbeddings,
     TransformerWordEmbeddings,
     StackedEmbeddings,
+    DocumentTFIDFEmbeddings,
 )
 from flair.data import Sentence
 from enum import Enum
@@ -21,13 +22,14 @@ class ModelType(Enum):
     TRANSFORMER_WORD = TransformerWordEmbeddings
     WORD = WordEmbeddings
     FLAIR = FlairEmbeddings
+    TFIDF = DocumentTFIDFEmbeddings
 
 
 class ExtractEmbedding:
     def __init__(
         self,
         model_types: Union[List[ModelType], ModelType],
-        model_names: Union[List[str], str],
+        model_names: Union[List[Union[str, Sentence]], str, Sentence],
         pooling_method: Optional[str] = "mean",
         device: Union[str, torch.device] = torch.device(
             "cuda" if torch.cuda.is_available() else "cpu"
@@ -48,6 +50,14 @@ class ExtractEmbedding:
         ), f"Invalid pooling method, options {POOLING.__str__}"
         # Single Model
         if isinstance(model_types, ModelType) and isinstance(model_names, str):
+            self.model = self._init_model(model_types, model_names, pooling_method)
+
+        # tf-idf
+        elif (
+            isinstance(model_types, ModelType)
+            and isinstance(model_names, list)
+            and isinstance(model_names[0], Sentence)
+        ):
             self.model = self._init_model(model_types, model_names, pooling_method)
         # Stacked Model Embedding
         elif isinstance(model_types, list) and isinstance(model_names, list):
@@ -92,7 +102,9 @@ class ExtractEmbedding:
                     torch.stack([word.embedding for word in sentence]), axis=0
                 )
                 embedding = torch.concatenate((word_embedding, doc_embedding))
-            elif isinstance(self.model, TransformerDocumentEmbeddings):
+            elif isinstance(self.model, TransformerDocumentEmbeddings) or isinstance(
+                self.model, DocumentTFIDFEmbeddings
+            ):
                 embedding = sentence.embedding
             else:
                 embedding = torch.mean(
