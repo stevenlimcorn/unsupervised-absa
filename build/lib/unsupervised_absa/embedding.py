@@ -4,6 +4,7 @@ from flair.embeddings import (
     FlairEmbeddings,
     TransformerWordEmbeddings,
     StackedEmbeddings,
+    FastTextEmbeddings,
     DocumentTFIDFEmbeddings,
 )
 from flair.data import Sentence
@@ -21,6 +22,7 @@ class ModelType(Enum):
     TRANSFORMER_DOC = TransformerDocumentEmbeddings
     TRANSFORMER_WORD = TransformerWordEmbeddings
     WORD = WordEmbeddings
+    FASTTEXT = FastTextEmbeddings
     FLAIR = FlairEmbeddings
     TFIDF = DocumentTFIDFEmbeddings
 
