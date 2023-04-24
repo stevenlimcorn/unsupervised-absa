@@ -9,6 +9,7 @@ from transformers.pipelines.pt_utils import KeyDataset
 from tqdm import tqdm
 from transformers import ZeroShotClassificationPipeline
 from loguru import logger
+import copy
 
 
 ########################################################
@@ -179,14 +180,14 @@ class MnliPipeline:
         return df
 
     def _get_polarity_term(self, output: dict, text_variable_name: str):
-        processed = {}
+        processed = copy.deepcopy(output)
         term = None
         for label, score in zip(output["labels"], output["scores"]):
             # sample: This example is negative sentiment towards staff.
             polarity, term = (
                 label.replace("This example is ", "")
                 .replace(".", "")
-                .split(" sentiment towards")
+                .split(" sentiment towards ")
             )
             term = term
             processed[polarity] = score
