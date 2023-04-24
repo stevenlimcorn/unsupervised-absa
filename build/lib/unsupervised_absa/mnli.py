@@ -187,7 +187,7 @@ class MnliPipeline:
             polarity, term = (
                 label.replace("This example is ", "")
                 .replace(".", "")
-                .split(" sentiment towards")
+                .split(" sentiment towards ")
             )
             term = term
             processed[polarity] = score
