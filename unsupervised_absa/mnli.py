@@ -105,8 +105,14 @@ class MyPipeline(ZeroShotClassificationPipeline):
 
 # Extract Polarity Method
 class MnliPipeline:
-    def __init__(self, model_name: str) -> None:
-        self.pipe = pipeline(model=model_name, pipeline_class=MyPipeline)
+    def __init__(
+        self,
+        model_name: str,
+        device: Optional[Union[int, str, torch.device]] = torch.device(
+            "cuda" if torch.cuda.is_available() else "cpu"
+        ),
+    ) -> None:
+        self.pipe = pipeline(model=model_name, pipeline_class=MyPipeline, device=device)
         self.model_name = model_name
 
     def extract_polarity(
@@ -145,9 +151,9 @@ class MnliPipeline:
         # preprocessing dataset
         logger.info(f"Preprocessing dataset with length: {len(dataset)}")
         term_dataset = self._preprocess_terms(df, label_variable_name)
-
         # extracting polarity
         logger.info(f"Extracting polarity with model: {self.model_name}")
+        term_dataset_iter = iter(term_dataset)
         outputs = []
         try:
             for out in tqdm(
@@ -159,7 +165,9 @@ class MnliPipeline:
                 ),
                 total=len(term_dataset),
             ):
-                outputs.append(out)
+                raw_data = next(term_dataset_iter)
+                combined_data = {**raw_data, **out}
+                outputs.append(combined_data)
             self.pipe.reset_count()
         except Exception as e:
             self.pipe.reset_count()
@@ -170,17 +178,17 @@ class MnliPipeline:
 
         # postprocessing outputs
         logger.info("Postprocessing outputs")
-        return Dataset.from_pandas(self._postprocess_terms(outputs, text_variable_name))
+        return Dataset.from_pandas(self._postprocess_terms(outputs))
 
-    def _postprocess_terms(self, outputs: list, text_variable_name: str):
+    def _postprocess_terms(self, outputs: list):
         array_of_dicts = []
         for output in outputs:
-            array_of_dicts.append(self._get_polarity_term(output, text_variable_name))
+            array_of_dicts.append(self._get_polarity_term(output))
         df = pd.DataFrame.from_dict(array_of_dicts)
         return df
 
-    def _get_polarity_term(self, output: dict, text_variable_name: str):
-        processed = copy.deepcopy(output)
+    def _get_polarity_term(self, output: dict):
+        processed = {}
         term = None
         for label, score in zip(output["labels"], output["scores"]):
             # sample: This example is negative sentiment towards staff.
@@ -194,8 +202,12 @@ class MnliPipeline:
         # argmax of previously extracted polarity
         processed["polarity"] = max(processed, key=processed.get)
         processed["term"] = term
-        processed[text_variable_name] = output["sequence"]
-        return processed
+        raw_output = {
+            key: value
+            for key, value in output.items()
+            if key not in ["labels", "scores", "aspectLabel", "sequence"]
+        }
+        return {**processed, **raw_output}
 
     def _preprocess_terms(
         self,
